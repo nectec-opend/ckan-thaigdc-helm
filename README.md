@@ -5,7 +5,7 @@
 Helm repository URL (ใส่ใน Portainer → Settings → Kubernetes settings → Helm repository):
 
 ```
-https://nectec-opend.github.io/portainer-ckan-thaigdc-k8s
+https://nectec-opend.github.io/ckan-thaigdc-helm
 ```
 
 1. สร้าง namespace ของหน่วยงานใน Portainer (Namespaces → Add) และตั้ง resource quota
