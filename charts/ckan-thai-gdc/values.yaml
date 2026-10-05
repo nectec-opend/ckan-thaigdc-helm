@@ -1,0 +1,105 @@
+# ================================================================
+#  ค่าที่ต้องกรอก
+# ================================================================
+
+# ชื่อหน่วยงาน (a-z, 0-9 เท่านั้น)
+# ถ้าเว้นว่าง จะใช้ "ชื่อ release" ที่กรอกใน Portainer แทน
+# ใช้สร้างชื่อ: POSTGRES_USER=ckan_<agent>, DATASTORE_READONLY_USER=datastore_<agent>,
+#              datastore DB=datastore_<agent>
+agent: ""
+
+ingress:
+  enabled: true
+  # โดเมนของเว็บ (จำเป็น) — CKAN_SITE_URL จะสร้างจากค่านี้อัตโนมัติ
+  host: ""
+  className: ""
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+  tls:
+    enabled: false
+    # ชื่อ Secret ที่เก็บ certificate (ถ้าเว้นว่างใช้ <release>-tls)
+    secretName: ""
+
+postgres:
+  server: "192.168.45.74"
+  port: 5432
+  # จำเป็น — ห้ามมี @ : / # เพราะถูกนำไปต่อเป็น URL
+  password: ""
+  datastoreReadonlyPassword: ""
+  # เว้นว่างเพื่อใช้ชื่อมาตรฐาน ckan_<agent> / datastore_<agent>
+  user: ""
+  datastoreReadonlyUser: ""
+
+sysadmin:
+  name: "ckan_admin"
+  email: "admin@example.go.th"
+  # จำเป็น
+  password: ""
+
+# ================================================================
+#  ค่าขั้นสูง (ปกติไม่ต้องแก้)
+# ================================================================
+ckan:
+  image:
+    repository: thepaeth/ckan-thai_gdc
+    tag: ""            # เว้นว่าง = ใช้ appVersion ของ chart
+    pullPolicy: IfNotPresent
+  # เว้นว่าง = สร้างจาก ingress.host
+  siteUrl: ""
+  plugins: "thai_gdc showcase stats opendstats activity image_view datatables_view text_view webpage_view resource_proxy geo_view geojson_view shp_view xloader datastore pdf_view dcat dcat_json_interface structured_data scheming_datasets hierarchy_display hierarchy_form envvars"
+  maxUploadSizeMb: 100
+  # ค่า env เพิ่มเติม/ทับค่าเดิม เช่น { CKAN__LOCALES_OFFERED: "th" }
+  extraEnv: {}
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+  storage:
+    size: 20Gi
+    storageClass: ""
+  configStorage:
+    size: 1Gi
+    storageClass: ""
+
+solr:
+  # false = ใช้ Solr ภายนอก (กรอก externalUrl)
+  enabled: true
+  externalUrl: ""      # เช่น http://192.168.45.74:8983/solr/ckan_agency
+  image:
+    repository: ckan/ckan-solr
+    tag: "2.10-solr8"
+    pullPolicy: IfNotPresent
+  javaMem: "-Xms256m -Xmx512m"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  storage:
+    size: 5Gi
+    storageClass: ""
+
+redis:
+  image:
+    repository: redis
+    tag: alpine
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  storage:
+    size: 2Gi
+    storageClass: ""
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

@@ -1,0 +1,9 @@
+ติดตั้ง CKAN Thai GDC เรียบร้อย
+
+  หน่วยงาน (agent) : {{ include "ckan.agent" . }}
+  Namespace        : {{ .Release.Namespace }}
+  เว็บไซต์          : {{ include "ckan.siteUrl" . }}
+  Solr             : {{ include "ckan.solrUrl" . }}
+
+ครั้งแรก CKAN อาจใช้เวลาหลายนาทีในการเตรียมฐานข้อมูล
+ถ้าย้ายมาจาก Solr เดิม ให้รันใน Console ของ pod CKAN:  ckan search-index rebuild

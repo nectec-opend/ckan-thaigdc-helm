@@ -1,0 +1,472 @@
+# ################################################################
+#  CKAN Thai GDC v3.0.x  —  Kubernetes template for Portainer CE
+#
+#  ผู้ใช้แก้ 3 จุดที่มีเครื่องหมาย  <-- แก้
+#    1) ชื่อหน่วยงาน (บรรทัด &agent)  -> ใช้เป็นทั้งชื่อ namespace และ AGENT
+#    2) CKAN_SITE_URL
+#    3) host ใน Ingress ท้ายไฟล์
+#
+#  ตอน deploy ใน Portainer ต้องเปิด "Use namespace(s) specified from manifest"
+#
+#  หมายเหตุ: ไฟล์นี้เป็น kind: List เอกสารเดียว เพื่อใช้ YAML anchor (&agent / *agent)
+#  ให้แก้ชื่อหน่วยงานแค่ที่เดียว แล้วถูกนำไปใช้กับทุก resource อัตโนมัติ
+# ################################################################
+apiVersion: v1
+kind: List
+items:
+
+  # ==============================================================
+  # NAMESPACE
+  # ชื่อหน่วยงาน: ใช้ได้เฉพาะ a-z และ 0-9 (ห้ามมี - หรือ _ เพราะใช้เป็นชื่อ DB ด้วย)
+  # ==============================================================
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: &agent agency                           # <-- แก้ (1)
+
+  # ==============================================================
+  # USER INPUT : ค่าทั่วไป
+  # ชื่อที่ได้อัตโนมัติจาก AGENT:
+  #   POSTGRES_USER = ckan_<AGENT>, DATASTORE_READONLY_USER = datastore_<AGENT>
+  #   datastore DB  = datastore_<AGENT>
+  # Solr ติดตั้งใน namespace นี้เอง (core ชื่อ ckan) ไม่ต้องตั้งค่า
+  # ==============================================================
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: ckan-input
+      namespace: *agent
+    data:
+      AGENT: *agent
+      CKAN_SITE_URL: "https://data.example.go.th"   # <-- แก้ (2)
+      POSTGRES_SERVER: "192.168.45.74"
+      POSTGRES_PORT: "5432"
+      CKAN_SYSADMIN_NAME: "ckan_admin"
+      CKAN_SYSADMIN_EMAIL: "mail@a.b"
+
+  # ==============================================================
+  # USER INPUT : รหัสผ่าน (ควรเปลี่ยน)
+  # รหัสผ่าน Postgres ห้ามมี @ : / # เพราะถูกนำไปต่อเป็น URL
+  # ==============================================================
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: ckan-secret
+      namespace: *agent
+    type: Opaque
+    stringData:
+      POSTGRES_PASSWORD: "public"
+      DATASTORE_READONLY_PASSWORD: "public"
+      CKAN_SYSADMIN_PASSWORD: "ckan@min!1234"
+
+  # ##############################################################
+  #  ด้านล่างนี้ไม่ต้องแก้ (ยกเว้น host ใน Ingress)
+  # ##############################################################
+
+  # ==============================================================
+  # RESOURCE QUOTA ของ namespace นี้
+  # ==============================================================
+  - apiVersion: v1
+    kind: ResourceQuota
+    metadata:
+      name: ckan-quota
+      namespace: *agent
+    spec:
+      hard:
+        requests.cpu: "2"
+        requests.memory: 3Gi
+        limits.cpu: "4"
+        limits.memory: 5Gi
+        requests.storage: 40Gi
+        persistentvolumeclaims: "6"
+
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: ckan-config
+      namespace: *agent
+    data:
+      CKAN_SITE_ID: "default"
+      CKAN_PORT: "5000"
+      TZ: "Asia/Bangkok"
+      CKAN__PLUGINS: "thai_gdc showcase stats opendstats activity image_view datatables_view text_view webpage_view resource_proxy geo_view geojson_view shp_view xloader datastore pdf_view dcat dcat_json_interface structured_data scheming_datasets hierarchy_display hierarchy_form envvars"
+      CKAN__HARVEST__MQ__TYPE: "redis"
+      CKAN__HARVEST__MQ__HOSTNAME: "redis"
+      CKAN__HARVEST__MQ__PORT: "6379"
+      CKAN__HARVEST__MQ__REDIS_DB: "0"
+      CKAN__VIEWS__DEFAULT_VIEWS: "image_view datatables_view text_view webpage_view pdf_view geo_view geojson_view webpage_view shp_view wmts_view"
+      CKAN__TRACKING_ENABLED: "True"
+      CKAN__AUTH__USER_DELETE_GROUPS: "False"
+      CKAN__AUTH__USER_DELETE_ORGANIZATIONS: "False"
+      CKAN__AUTH__PUBLIC_USER_DETAILS: "False"
+      CKAN__ACTIVITY_STREAMS_ENABLED: "True"
+      CKAN___THAI_GDC__IS_AS_A_SERVICE: "true"
+      CKANEXT__GEOVIEW__OL_VIEWER__FORMATS: "wms wfs kml geojson gml arcgis_rest"
+      CKANEXT__GEOVIEW__SHP_VIEWER__SRID: "4326"
+      CKANEXT__GEOVIEW__SHP_VIEWER__ENCODING: "UTF-8"
+      CKANEXT__SPATIAL__COMMON_MAP__TYPE: "custom"
+      CKANEXT__SPATIAL__COMMON_MAP__CUSTOM__URL: "http://tile.openstreetmap.org/{z}/{x}/{y}.png"
+      CKANEXT__SPATIAL__COMMON_MAP__ATTRIBUTION: "Map tiles & Data by OpenStreetMap, under CC BY SA."
+      CKAN__DATASTORE__SQLSEARCH__ENABLED: "False"
+      CKAN___SCHEMING__DATASET_SCHEMAS: "ckanext.thai_gdc:ckan_dataset.json"
+      CKAN___SCHEMING__PRESETS: "ckanext.thai_gdc:presets.json"
+      CKANEXT__XLOADER__JUST_LOAD_WITH_MESSYTABLES: "true"
+      CKANEXT__XLOADER__SSL_VERIFY: "false"
+      CKAN__DATATABLES__STATE_SAVING: "false"
+      CKAN__LOCALES_OFFERED: "th en"
+      CKAN__UPLOAD__ADMIN__MIMETYPES: "*"
+      CKAN__UPLOAD__ADMIN__TYPES: "*"
+      CKANEXT__SHOWCASE__EDITOR: "ckeditor"
+      CKAN__UPLOAD__SHOWCASE__TYPES: "image"
+      CKAN__UPLOAD__SHOWCASE__MIMETYPES: "image/jpeg image/png image/gif image/svg+xml"
+      CKAN_MAX_UPLOAD_SIZE_MB: "100"
+
+  # ==============================================================
+  # STORAGE (ใช้ default StorageClass)
+  # ==============================================================
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: ckan-storage
+      namespace: *agent
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 20Gi
+
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: ckan-config-storage
+      namespace: *agent
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 1Gi
+
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: redis-data
+      namespace: *agent
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 2Gi
+
+  # ==============================================================
+  # REDIS
+  # ==============================================================
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: redis
+      namespace: *agent
+      labels:
+        app: redis
+    spec:
+      replicas: 1
+      strategy:
+        type: Recreate
+      selector:
+        matchLabels:
+          app: redis
+      template:
+        metadata:
+          labels:
+            app: redis
+        spec:
+          containers:
+            - name: redis
+              image: redis:alpine
+              ports:
+                - name: redis
+                  containerPort: 6379
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+              volumeMounts:
+                - name: redis-data
+                  mountPath: /data
+          volumes:
+            - name: redis-data
+              persistentVolumeClaim:
+                claimName: redis-data
+
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: redis
+      namespace: *agent
+    spec:
+      selector:
+        app: redis
+      ports:
+        - name: redis
+          port: 6379
+          targetPort: 6379
+
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: solr-data
+      namespace: *agent
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 5Gi
+
+  # ==============================================================
+  # SOLR  (image สร้าง core ชื่อ "ckan" ให้อัตโนมัติตอนรันครั้งแรก)
+  # ==============================================================
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: solr
+      namespace: *agent
+      labels:
+        app: solr
+    spec:
+      replicas: 1
+      strategy:
+        type: Recreate
+      selector:
+        matchLabels:
+          app: solr
+      template:
+        metadata:
+          labels:
+            app: solr
+        spec:
+          securityContext:
+            # Solr ใน image รันด้วย uid 8983 ให้ PVC เขียนได้
+            fsGroup: 8983
+          containers:
+            - name: solr
+              image: ckan/ckan-solr:2.10-solr8
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: SOLR_JAVA_MEM
+                  value: "-Xms256m -Xmx512m"
+                - name: TZ
+                  value: "Asia/Bangkok"
+              ports:
+                - name: solr
+                  containerPort: 8983
+              readinessProbe:
+                httpGet:
+                  path: /solr/ckan/admin/ping
+                  port: 8983
+                initialDelaySeconds: 20
+                periodSeconds: 10
+                failureThreshold: 6
+              resources:
+                requests:
+                  cpu: 250m
+                  memory: 512Mi
+                limits:
+                  cpu: "1"
+                  memory: 1Gi
+              volumeMounts:
+                - name: solr-data
+                  mountPath: /var/solr
+          volumes:
+            - name: solr-data
+              persistentVolumeClaim:
+                claimName: solr-data
+
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: solr
+      namespace: *agent
+    spec:
+      selector:
+        app: solr
+      ports:
+        - name: solr
+          port: 8983
+          targetPort: 8983
+
+  # ==============================================================
+  # CKAN
+  # ==============================================================
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: ckan
+      namespace: *agent
+      labels:
+        app: ckan
+    spec:
+      replicas: 1
+      strategy:
+        type: Recreate
+      selector:
+        matchLabels:
+          app: ckan
+      template:
+        metadata:
+          labels:
+            app: ckan
+        spec:
+          # ถ้าต้องการล็อก node (แทน node.hostname==${NODE_ROLE}) ให้เอา # ออก
+          # nodeSelector:
+          #   kubernetes.io/hostname: "045073-U"
+
+          initContainers:
+            # รอให้ Solr core พร้อมก่อน CKAN จะเริ่ม
+            - name: wait-solr
+              image: thepaeth/ckan-thai_gdc:v3.0.3
+              command:
+                - python3
+                - -c
+                - |
+                  import time, urllib.request
+                  url = "http://solr:8983/solr/ckan/admin/ping"
+                  while True:
+                      try:
+                          urllib.request.urlopen(url, timeout=5)
+                          print("solr ready"); break
+                      except Exception as e:
+                          print("waiting for solr:", e); time.sleep(5)
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 256Mi
+            # PVC ของ K8s ไม่คัดลอกไฟล์จาก image ให้เหมือน Docker named volume
+            - name: init-volumes
+              image: thepaeth/ckan-thai_gdc:v3.0.3
+              securityContext:
+                runAsUser: 0
+              command:
+                - sh
+                - -c
+                - |
+                  set -e
+                  OWNER=$(stat -c '%u:%g' /srv/app)
+                  if [ -z "$(ls -A /init/conf 2>/dev/null)" ] && [ -d /srv/app/conf ]; then
+                    cp -a /srv/app/conf/. /init/conf/
+                  fi
+                  if [ -z "$(ls -A /init/storage 2>/dev/null)" ] && [ -d /var/lib/ckan ]; then
+                    cp -a /var/lib/ckan/. /init/storage/
+                  fi
+                  chown -R "$OWNER" /init/conf /init/storage
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+              volumeMounts:
+                - name: ckan-config
+                  mountPath: /init/conf
+                - name: ckan-storage
+                  mountPath: /init/storage
+
+          containers:
+            - name: ckan
+              image: thepaeth/ckan-thai_gdc:v3.0.3   # เปลี่ยนเวอร์ชันที่นี่ (และใน initContainer)
+              imagePullPolicy: IfNotPresent
+              ports:
+                - name: http
+                  containerPort: 5000
+              envFrom:
+                - configMapRef:
+                    name: ckan-input
+                - configMapRef:
+                    name: ckan-config
+                - secretRef:
+                    name: ckan-secret
+              env:
+                - name: POSTGRES_USER
+                  value: "ckan_$(AGENT)"
+                - name: DATASTORE_READONLY_USER
+                  value: "datastore_$(AGENT)"
+                - name: CKAN_SQLALCHEMY_URL
+                  value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_SERVER):$(POSTGRES_PORT)/$(POSTGRES_USER)"
+                - name: CKAN_DATASTORE_WRITE_URL
+                  value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_SERVER):$(POSTGRES_PORT)/datastore_$(AGENT)"
+                - name: CKAN_DATASTORE_READ_URL
+                  value: "postgresql://$(DATASTORE_READONLY_USER):$(DATASTORE_READONLY_PASSWORD)@$(POSTGRES_SERVER):$(POSTGRES_PORT)/datastore_$(AGENT)"
+                - name: CKANEXT__XLOADER__JOBS_DB__URI
+                  value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_SERVER):$(POSTGRES_PORT)/$(POSTGRES_USER)"
+                - name: CKAN_SOLR_URL
+                  value: "http://solr:8983/solr/ckan"
+                - name: CKAN_REDIS_URL
+                  value: "redis://redis:6379/0"
+              readinessProbe:
+                httpGet:
+                  path: /api/3/action/status_show
+                  port: 5000
+                initialDelaySeconds: 30
+                periodSeconds: 15
+                failureThreshold: 6
+              resources:
+                requests:
+                  cpu: 250m
+                  memory: 512Mi
+                limits:
+                  cpu: "1"
+                  memory: 2Gi
+              volumeMounts:
+                - name: ckan-storage
+                  mountPath: /var/lib/ckan
+                - name: ckan-config
+                  mountPath: /srv/app/conf
+          volumes:
+            - name: ckan-storage
+              persistentVolumeClaim:
+                claimName: ckan-storage
+            - name: ckan-config
+              persistentVolumeClaim:
+                claimName: ckan-config-storage
+
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: ckan
+      namespace: *agent
+    spec:
+      selector:
+        app: ckan
+      ports:
+        - name: http
+          port: 5000
+          targetPort: 5000
+
+  # ==============================================================
+  # INGRESS
+  # ==============================================================
+  - apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: ckan
+      namespace: *agent
+      annotations:
+        nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    spec:
+      # ingressClassName: nginx
+      rules:
+        - host: data.example.go.th                  # <-- แก้ (3)
+          http:
+            paths:
+              - path: /
+                pathType: Prefix
+                backend:
+                  service:
+                    name: ckan
+                    port:
+                      number: 5000

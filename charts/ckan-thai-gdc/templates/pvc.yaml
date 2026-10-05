@@ -1,0 +1,28 @@
+{{- $pvcs := list
+  (dict "name" (printf "%s-storage" (include "ckan.name" .)) "cfg" .Values.ckan.storage)
+  (dict "name" (printf "%s-config" (include "ckan.name" .)) "cfg" .Values.ckan.configStorage)
+  (dict "name" (include "ckan.redisName" .) "cfg" .Values.redis.storage)
+}}
+{{- if .Values.solr.enabled }}
+{{- $pvcs = append $pvcs (dict "name" (include "ckan.solrName" .) "cfg" .Values.solr.storage) }}
+{{- end }}
+{{- range $pvcs }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .name }}
+  labels:
+    {{- include "ckan.labels" $ | nindent 4 }}
+  annotations:
+    # ไม่ลบข้อมูลเมื่อ uninstall chart
+    helm.sh/resource-policy: keep
+spec:
+  accessModes: ["ReadWriteOnce"]
+  {{- with .cfg.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .cfg.size }}
+{{- end }}

@@ -1,0 +1,136 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ckan.name" . }}
+  labels:
+    {{- include "ckan.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ckan
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "ckan.selector" (dict "root" . "component" "ckan") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ckan.selector" (dict "root" . "component" "ckan") | nindent 8 }}
+      annotations:
+        # restart pod อัตโนมัติเมื่อ config/secret เปลี่ยนตอน upgrade
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        # PVC ไม่คัดลอกไฟล์จาก image ให้เหมือน Docker named volume
+        - name: init-volumes
+          image: {{ include "ckan.image" . }}
+          imagePullPolicy: {{ .Values.ckan.image.pullPolicy }}
+          securityContext:
+            runAsUser: 0
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              OWNER=$(stat -c '%u:%g' /srv/app)
+              if [ -z "$(ls -A /init/conf 2>/dev/null)" ] && [ -d /srv/app/conf ]; then
+                cp -a /srv/app/conf/. /init/conf/
+              fi
+              if [ -z "$(ls -A /init/storage 2>/dev/null)" ] && [ -d /var/lib/ckan ]; then
+                cp -a /var/lib/ckan/. /init/storage/
+              fi
+              chown -R "$OWNER" /init/conf /init/storage
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+          volumeMounts:
+            - name: config
+              mountPath: /init/conf
+            - name: storage
+              mountPath: /init/storage
+        - name: wait-solr
+          image: {{ include "ckan.image" . }}
+          imagePullPolicy: {{ .Values.ckan.image.pullPolicy }}
+          env:
+            - name: SOLR_PING
+              value: {{ printf "%s/admin/ping" (include "ckan.solrUrl" .) | quote }}
+          command:
+            - python3
+            - -c
+            - |
+              import os, time, urllib.request
+              url = os.environ["SOLR_PING"]
+              while True:
+                  try:
+                      urllib.request.urlopen(url, timeout=5); print("solr ready"); break
+                  except Exception as e:
+                      print("waiting for solr:", e); time.sleep(5)
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 200m, memory: 256Mi }
+      containers:
+        - name: ckan
+          image: {{ include "ckan.image" . }}
+          imagePullPolicy: {{ .Values.ckan.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: {{ include "ckan.name" . }}
+            - secretRef:
+                name: {{ include "ckan.name" . }}
+          env:
+            - name: CKAN_SQLALCHEMY_URL
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_SERVER):$(POSTGRES_PORT)/$(POSTGRES_USER)"
+            - name: CKAN_DATASTORE_WRITE_URL
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_SERVER):$(POSTGRES_PORT)/datastore_$(AGENT)"
+            - name: CKAN_DATASTORE_READ_URL
+              value: "postgresql://$(DATASTORE_READONLY_USER):$(DATASTORE_READONLY_PASSWORD)@$(POSTGRES_SERVER):$(POSTGRES_PORT)/datastore_$(AGENT)"
+            - name: CKANEXT__XLOADER__JOBS_DB__URI
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_SERVER):$(POSTGRES_PORT)/$(POSTGRES_USER)"
+          readinessProbe:
+            httpGet:
+              path: /api/3/action/status_show
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.ckan.resources | nindent 12 }}
+          volumeMounts:
+            - name: storage
+              mountPath: /var/lib/ckan
+            - name: config
+              mountPath: /srv/app/conf
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: {{ include "ckan.name" . }}-storage
+        - name: config
+          persistentVolumeClaim:
+            claimName: {{ include "ckan.name" . }}-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ckan.name" . }}
+  labels:
+    {{- include "ckan.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "ckan.selector" (dict "root" . "component" "ckan") | nindent 4 }}
+  ports:
+    - name: http
+      port: 5000
+      targetPort: 5000

@@ -1,0 +1,61 @@
+{{- $agent := include "ckan.agent" . -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ckan.name" . }}
+  labels:
+    {{- include "ckan.labels" . | nindent 4 }}
+data:
+  AGENT: {{ $agent | quote }}
+  CKAN_SITE_URL: {{ include "ckan.siteUrl" . | quote }}
+  CKAN_SITE_ID: "default"
+  CKAN_PORT: "5000"
+  TZ: "Asia/Bangkok"
+
+  POSTGRES_SERVER: {{ .Values.postgres.server | quote }}
+  POSTGRES_PORT: {{ .Values.postgres.port | quote }}
+  POSTGRES_USER: {{ .Values.postgres.user | default (printf "ckan_%s" $agent) | quote }}
+  DATASTORE_READONLY_USER: {{ .Values.postgres.datastoreReadonlyUser | default (printf "datastore_%s" $agent) | quote }}
+
+  CKAN_SYSADMIN_NAME: {{ .Values.sysadmin.name | quote }}
+  CKAN_SYSADMIN_EMAIL: {{ .Values.sysadmin.email | quote }}
+
+  CKAN_SOLR_URL: {{ include "ckan.solrUrl" . | quote }}
+  CKAN_REDIS_URL: {{ printf "redis://%s:6379/0" (include "ckan.redisName" .) | quote }}
+
+  CKAN__PLUGINS: {{ .Values.ckan.plugins | quote }}
+
+  CKAN__HARVEST__MQ__TYPE: "redis"
+  CKAN__HARVEST__MQ__HOSTNAME: {{ include "ckan.redisName" . | quote }}
+  CKAN__HARVEST__MQ__PORT: "6379"
+  CKAN__HARVEST__MQ__REDIS_DB: "0"
+
+  CKAN__VIEWS__DEFAULT_VIEWS: "image_view datatables_view text_view webpage_view pdf_view geo_view geojson_view webpage_view shp_view wmts_view"
+  CKAN__TRACKING_ENABLED: "True"
+  CKAN__AUTH__USER_DELETE_GROUPS: "False"
+  CKAN__AUTH__USER_DELETE_ORGANIZATIONS: "False"
+  CKAN__AUTH__PUBLIC_USER_DETAILS: "False"
+  CKAN__ACTIVITY_STREAMS_ENABLED: "True"
+  CKAN___THAI_GDC__IS_AS_A_SERVICE: "true"
+  CKANEXT__GEOVIEW__OL_VIEWER__FORMATS: "wms wfs kml geojson gml arcgis_rest"
+  CKANEXT__GEOVIEW__SHP_VIEWER__SRID: "4326"
+  CKANEXT__GEOVIEW__SHP_VIEWER__ENCODING: "UTF-8"
+  CKANEXT__SPATIAL__COMMON_MAP__TYPE: "custom"
+  CKANEXT__SPATIAL__COMMON_MAP__CUSTOM__URL: "http://tile.openstreetmap.org/{z}/{x}/{y}.png"
+  CKANEXT__SPATIAL__COMMON_MAP__ATTRIBUTION: "Map tiles & Data by OpenStreetMap, under CC BY SA."
+  CKAN__DATASTORE__SQLSEARCH__ENABLED: "False"
+  CKAN___SCHEMING__DATASET_SCHEMAS: "ckanext.thai_gdc:ckan_dataset.json"
+  CKAN___SCHEMING__PRESETS: "ckanext.thai_gdc:presets.json"
+  CKANEXT__XLOADER__JUST_LOAD_WITH_MESSYTABLES: "true"
+  CKANEXT__XLOADER__SSL_VERIFY: "false"
+  CKAN__DATATABLES__STATE_SAVING: "false"
+  CKAN__LOCALES_OFFERED: "th en"
+  CKAN__UPLOAD__ADMIN__MIMETYPES: "*"
+  CKAN__UPLOAD__ADMIN__TYPES: "*"
+  CKANEXT__SHOWCASE__EDITOR: "ckeditor"
+  CKAN__UPLOAD__SHOWCASE__TYPES: "image"
+  CKAN__UPLOAD__SHOWCASE__MIMETYPES: "image/jpeg image/png image/gif image/svg+xml"
+  CKAN_MAX_UPLOAD_SIZE_MB: {{ .Values.ckan.maxUploadSizeMb | quote }}
+  {{- range $k, $v := .Values.ckan.extraEnv }}
+  {{ $k }}: {{ $v | quote }}
+  {{- end }}
