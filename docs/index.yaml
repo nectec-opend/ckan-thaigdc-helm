@@ -3,7 +3,21 @@ entries:
   ckan-thai-gdc:
   - apiVersion: v2
     appVersion: v3.1.0
-    created: "2026-10-09T09:31:51.757997368+07:00"
+    created: "2026-10-09T12:56:52.035252512+07:00"
+    description: CKAN Thai GDC (ckan + solr + redis) for Kubernetes / Portainer
+    digest: e5071e454b9bc3eebce4ae2b82c2c4c1e78850c9a1419a23ba9daac17f0eb4cf
+    keywords:
+    - ckan
+    - opendata
+    - thai-gdc
+    name: ckan-thai-gdc
+    type: application
+    urls:
+    - https://nectec-opend.github.io/ckan-thaigdc-helm/ckan-thai-gdc-1.0.3.tgz
+    version: 1.0.3
+  - apiVersion: v2
+    appVersion: v3.1.0
+    created: "2026-10-09T12:56:52.034010801+07:00"
     description: CKAN Thai GDC (ckan + solr + redis) for Kubernetes / Portainer
     digest: 1c25be67b97f4324d36effc4d31f1bd4d1e1a9e0edb1eb6ff61456fd50f66abe
     keywords:
@@ -17,7 +31,7 @@ entries:
     version: 1.0.2
   - apiVersion: v2
     appVersion: v3.1.0
-    created: "2026-10-09T09:31:51.757381351+07:00"
+    created: "2026-10-09T12:56:52.031828263+07:00"
     description: CKAN Thai GDC (ckan + solr + redis) for Kubernetes / Portainer
     digest: b48d69553905043f51100321403eb54b6d3be3308ccd151b0884cbab755ee3e0
     keywords:
@@ -31,7 +45,7 @@ entries:
     version: 1.0.1
   - apiVersion: v2
     appVersion: v3.1.0
-    created: "2026-10-09T09:31:51.755914802+07:00"
+    created: "2026-10-09T12:56:52.030199223+07:00"
     description: CKAN Thai GDC (ckan + solr + redis) for Kubernetes / Portainer
     digest: 7c2480b8dde168fe01393a4be16afa07802fb51ce66b6bd67117c5bda6012b14
     keywords:
@@ -43,4 +57,4 @@ entries:
     urls:
     - https://nectec-opend.github.io/ckan-thaigdc-helm/ckan-thai-gdc-1.0.0.tgz
     version: 1.0.0
-generated: "2026-10-09T09:31:51.754678587+07:00"
+generated: "2026-10-09T12:56:52.026519964+07:00"
