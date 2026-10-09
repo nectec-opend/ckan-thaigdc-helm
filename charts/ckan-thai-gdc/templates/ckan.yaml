@@ -42,22 +42,20 @@ spec:
             - -c
             - |
               set -e
-              OWNER=$(stat -c '%u:%g' /srv/app)
-              if [ -z "$(ls -A /init/conf 2>/dev/null)" ] && [ -d /srv/app/conf ]; then
-                cp -a /srv/app/conf/. /init/conf/
+              # subPath mount รอบก่อนอาจสร้าง ckan.ini เป็น directory ไว้
+              if [ -d /mnt/conf/ckan.ini ]; then
+                echo "ckan.ini on PVC is a directory, removing it"
+                rm -rf /mnt/conf/ckan.ini
               fi
-              if [ -z "$(ls -A /init/storage 2>/dev/null)" ] && [ -d /var/lib/ckan ]; then
-                cp -a /var/lib/ckan/. /init/storage/
+              if [ ! -s /mnt/conf/ckan.ini ]; then
+                echo "Copying ckan.ini from image to PVC"
+                cp /srv/app/conf/ckan.ini /mnt/conf/ckan.ini
+              else
+                echo "ckan.ini already exists on PVC, skipping"
               fi
-              chown -R "$OWNER" /init/conf /init/storage
-          resources:
-            requests: { cpu: 100m, memory: 128Mi }
-            limits: { cpu: 500m, memory: 512Mi }
           volumeMounts:
             - name: config
-              mountPath: /init/conf
-            - name: storage
-              mountPath: /init/storage
+              mountPath: /mnt/conf
         - name: wait-solr
           image: {{ include "ckan.image" . }}
           imagePullPolicy: {{ .Values.ckan.image.pullPolicy }}

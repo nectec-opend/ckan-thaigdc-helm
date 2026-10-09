@@ -30,7 +30,7 @@ data:
   CKAN__HARVEST__MQ__PORT: "6379"
   CKAN__HARVEST__MQ__REDIS_DB: "0"
 
-  CKAN__VIEWS__DEFAULT_VIEWS: "image_view datatables_view text_view webpage_view pdf_view geo_view geojson_view webpage_view shp_view wmts_view"
+  CKAN__VIEWS__DEFAULT_VIEWS: "image_view datatables_view text_view webpage_view pdf_view geo_view geojson_view shp_view"
   CKAN__TRACKING_ENABLED: "True"
   CKAN__AUTH__USER_DELETE_GROUPS: "False"
   CKAN__AUTH__USER_DELETE_ORGANIZATIONS: "False"
@@ -50,11 +50,12 @@ data:
   CKANEXT__XLOADER__SSL_VERIFY: "false"
   CKAN__DATATABLES__STATE_SAVING: "false"
   CKAN__LOCALES_OFFERED: "th en"
-  CKAN__UPLOAD__ADMIN__MIMETYPES: "*"
+  CKAN__UPLOAD__ADMIN__MIMETYPES: "image/png image/gif image/jpeg image/svg+xml image/x-icon image/vnd.microsoft.icon application/vnd.ms-excel.sheet.macroEnabled.12 application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   CKAN__UPLOAD__ADMIN__TYPES: "*"
   CKANEXT__SHOWCASE__EDITOR: "ckeditor"
   CKAN__UPLOAD__SHOWCASE__TYPES: "image"
   CKAN__UPLOAD__SHOWCASE__MIMETYPES: "image/jpeg image/png image/gif image/svg+xml"
+  CKAN__UPLOADS_ENABLED: "True"
   CKAN_MAX_UPLOAD_SIZE_MB: {{ .Values.ckan.maxUploadSizeMb | quote }}
   {{- range $k, $v := .Values.ckan.extraEnv }}
   {{ $k }}: {{ $v | quote }}

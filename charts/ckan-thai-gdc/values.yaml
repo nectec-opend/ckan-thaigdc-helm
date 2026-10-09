@@ -46,7 +46,7 @@ ckan:
     pullPolicy: IfNotPresent
   # เว้นว่าง = สร้างจาก ingress.host
   siteUrl: ""
-  plugins: "thai_gdc showcase stats opendstats activity image_view datatables_view text_view webpage_view resource_proxy geo_view geojson_view shp_view xloader datastore pdf_view dcat dcat_json_interface structured_data scheming_datasets hierarchy_display hierarchy_form envvars"
+  plugins: "thaigdc2fa thai_gdc showcase stats opendstats activity image_view datatables_view text_view webpage_view resource_proxy geo_view geojson_view shp_view xloader datastore pdf_view dcat dcat_json_interface structured_data scheming_datasets hierarchy_display hierarchy_form envvars"
   maxUploadSizeMb: 100
   # ค่า env เพิ่มเติม/ทับค่าเดิม เช่น { CKAN__LOCALES_OFFERED: "th" }
   extraEnv: {}
