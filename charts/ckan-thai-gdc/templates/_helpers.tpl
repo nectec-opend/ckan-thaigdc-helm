@@ -1,7 +1,7 @@
 {{- define "ckan.agent" -}}
 {{- $a := .Values.agent | default .Release.Name -}}
-{{- if not (regexMatch "^[a-z0-9]+$" $a) -}}
-{{- fail (printf "agent %q ใช้ได้เฉพาะ a-z และ 0-9 — ตั้งค่า agent ใน values หรือเปลี่ยนชื่อ release" $a) -}}
+{{- if not (regexMatch "^[a-z0-9]([a-z0-9_-]{0,48}[a-z0-9])?$" $a) -}}
+{{- fail (printf "agent %q ใช้ได้เฉพาะ a-z 0-9 - _ (ตัวเล็ก, ขึ้นต้นและลงท้ายด้วยตัวอักษรหรือตัวเลข, ยาวไม่เกิน 50) — ตั้งค่า agent ใน values หรือเปลี่ยนชื่อ release" $a) -}}
 {{- end -}}
 {{- $a -}}
 {{- end -}}

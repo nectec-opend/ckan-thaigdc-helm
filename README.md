@@ -9,7 +9,7 @@ https://nectec-opend.github.io/ckan-thaigdc-helm
 ```
 
 1. สร้าง namespace ของหน่วยงานใน Portainer (Namespaces → Add) และตั้ง resource quota
-2. Helm → เลือก chart `ckan-thai-gdc` → ตั้ง Name = ชื่อหน่วยงาน (a-z0-9) → เลือก namespace
+2. Helm → เลือก chart `ckan-thai-gdc` → ตั้ง Name = ชื่อหน่วยงาน: a-z 0-9 - _ (ตัวเล็กเท่านั้น, ขึ้นต้น/ลงท้ายด้วยตัวอักษรหรือตัวเลข) → เลือก namespace
 3. แก้ values อย่างน้อย:
 
 ```yaml
