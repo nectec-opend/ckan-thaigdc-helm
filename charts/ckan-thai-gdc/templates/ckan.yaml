@@ -21,6 +21,12 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
     spec:
+      {{- with .Values.ckan.fsGroup }}
+      securityContext:
+        # ให้ Kubernetes ตั้ง group ของ PVC เป็น ckan-sys (gid 502) ให้ user ckan เขียนได้
+        fsGroup: {{ . }}
+        fsGroupChangePolicy: OnRootMismatch
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -32,7 +38,7 @@ spec:
       {{- end }}
       initContainers:
         # PVC ไม่คัดลอกไฟล์จาก image ให้เหมือน Docker named volume
-        - name: init-volumes
+        - name: init-config
           image: {{ include "ckan.image" . }}
           imagePullPolicy: {{ .Values.ckan.image.pullPolicy }}
           securityContext:
@@ -42,20 +48,23 @@ spec:
             - -c
             - |
               set -e
-              # subPath mount รอบก่อนอาจสร้าง ckan.ini เป็น directory ไว้
-              if [ -d /mnt/conf/ckan.ini ]; then
-                echo "ckan.ini on PVC is a directory, removing it"
-                rm -rf /mnt/conf/ckan.ini
+              # owner = user ckan ของ image (ถ้าไม่มีใช้ owner ของ /srv/app)
+              if id ckan >/dev/null 2>&1; then OWNER="$(id -u ckan):$(id -g ckan)"; else OWNER=$(stat -c '%u:%g' /srv/app); fi
+              echo "owner = $OWNER"
+              # ckan.ini ถูกสร้างตอน build image ไม่ได้สร้างตอนรัน -> ต้องคัดลอกลง PVC
+              # เช็คที่ตัวไฟล์ ไม่ใช่ "โฟลเดอร์ว่าง" เพราะดิสก์ ext4 (Longhorn/Ceph/...) มี lost+found ติดมาเสมอ
+              if [ ! -f /init/conf/ckan.ini ]; then
+                echo "copy /srv/app/conf -> PVC"
+                cp -an /srv/app/conf/. /init/conf/
               fi
-              if [ ! -s /mnt/conf/ckan.ini ]; then
-                echo "Copying ckan.ini from image to PVC"
-                cp /srv/app/conf/ckan.ini /mnt/conf/ckan.ini
-              else
-                echo "ckan.ini already exists on PVC, skipping"
-              fi
+              chown -R "$OWNER" /init/conf
+              ls -la /init/conf
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi }
           volumeMounts:
             - name: config
-              mountPath: /mnt/conf
+              mountPath: /init/conf
         - name: wait-solr
           image: {{ include "ckan.image" . }}
           imagePullPolicy: {{ .Values.ckan.image.pullPolicy }}

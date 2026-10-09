@@ -44,6 +44,7 @@ ckan:
     repository: thepaeth/ckan-thai_gdc
     tag: ""            # เว้นว่าง = ใช้ appVersion ของ chart
     pullPolicy: IfNotPresent
+  fsGroup: 502
   # เว้นว่าง = สร้างจาก ingress.host
   siteUrl: ""
   plugins: "thaigdc2fa thai_gdc showcase stats opendstats activity image_view datatables_view text_view webpage_view resource_proxy geo_view geojson_view shp_view xloader datastore pdf_view dcat dcat_json_interface structured_data scheming_datasets hierarchy_display hierarchy_form envvars"

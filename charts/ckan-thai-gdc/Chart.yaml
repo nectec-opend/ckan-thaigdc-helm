@@ -3,7 +3,7 @@ name: ckan-thai-gdc
 description: CKAN Thai GDC (ckan + solr + redis) for Kubernetes / Portainer
 type: application
 # เพิ่มเลขนี้ทุกครั้งที่แก้ chart ไม่อย่างนั้น GitHub Actions จะไม่ publish เวอร์ชันใหม่
-version: 1.0.1
+version: 1.0.2
 appVersion: "v3.1.0"
 keywords:
   - ckan
