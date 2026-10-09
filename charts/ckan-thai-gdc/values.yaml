@@ -13,8 +13,6 @@ ingress:
   # โดเมนของเว็บ (จำเป็น) — CKAN_SITE_URL จะสร้างจากค่านี้อัตโนมัติ
   host: ""
   className: ""
-  annotations:
-    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
   tls:
     enabled: false
     # ชื่อ Secret ที่เก็บ certificate (ถ้าเว้นว่างใช้ <release>-tls)
